@@ -1,0 +1,27 @@
+{
+  "name": "hono",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --compile --minify --target bun --outfile dist/app"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
+    "prettier": "^3.6.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "bcrypt": "^6.0.0",
+    "hono": "^4.9.0",
+    "jsonwebtoken": "^9.0.2",
+    "nanoid": "^5.1.5",
+    "prisma": "^6.13.0"
+  }
+}
