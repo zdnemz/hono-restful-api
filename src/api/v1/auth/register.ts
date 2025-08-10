@@ -51,5 +51,5 @@ export const register = handler(async (c) => {
 
     // return response(c, 201, {id: user.id})
 
-    return response(c, 201, { id: user.id, otp })
+    return response(c, 201, { userId: user.id, otp })
 })
