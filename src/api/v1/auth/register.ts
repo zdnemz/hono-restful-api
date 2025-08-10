@@ -31,8 +31,22 @@ export const register = handler(async (c) => {
     const validated = await validate(registerSchema, data)
     if (!validated.success) return response(c, 400, validated.error);
 
+    const { username, email, password, fullName } = validated.data
+
+    const isUserExist = await db.user.findUnique({
+        where: { email, username }
+    })
+    if (isUserExist) return response(c, 400, "User has been registered");
+
+    const hashedPassword = await Bun.password.hash(password, "bcrypt")
+
     const user = await db.user.create({
-        data: validated.data,
+        data: {
+            username,
+            email,
+            password: hashedPassword,
+            fullName
+        },
         select: {
             id: true,
             email: true,

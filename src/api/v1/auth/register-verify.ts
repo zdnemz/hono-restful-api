@@ -30,11 +30,12 @@ export const registerVerify = handler(async (c) => {
     const redisOtp = await redis.get(`otp:${userId}`)
     if (!redisOtp || redisOtp !== otp) return response(c, 401, "OTP is not valid");
 
-    const user = await db.user.update({
+    await db.user.update({
         where: { id: userId },
         data: {
             isVerified: true
         },
+        select: {}
     })
 
     // sign jwt
