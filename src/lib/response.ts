@@ -25,6 +25,7 @@ export function response<T>(
 
     const body: ApiResponse<T> = {
         success,
+        code: status,
         message,
         data: success ? data : undefined,
         error,

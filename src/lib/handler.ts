@@ -1,6 +1,6 @@
 import { response } from "@/lib/response";
 import type { Handler } from "hono";
-import type { BlankEnv, BlankInput, H } from "hono/types";
+import type { H } from "hono/types";
 
 export interface HandlerOptions {
     name?: string;
