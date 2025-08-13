@@ -1,9 +1,12 @@
 import { db } from "@/lib/db";
 import handler from "@/lib/handler";
 import JWT from "@/lib/jwt";
+import { getRedisClient } from "@/lib/redis";
 import { response } from "@/lib/response";
 import { validate } from "@/lib/validate";
+import Session from "@/services/session";
 import { setCookie } from "hono/cookie";
+import { nanoid } from "nanoid";
 import z from "zod";
 
 const loginSchema = z.object({
@@ -19,29 +22,51 @@ const loginSchema = z.object({
 
 
 export const login = handler(async (c) => {
-    const data = await c.req.json()
+    const data = await c.req.json();
 
-    const validated = await validate(loginSchema, data)
+    const validated = await validate(loginSchema, data);
     if (!validated.success) return response(c, 400, validated.error);
 
-    const { email, username, password } = validated.data
+    const { email, username, password } = validated.data;
 
-    const user = await db.user.findUnique({
-        where: { email, username }, select: {
+    if (!email && !username) {
+        return response(c, 400, "Either email or username must be provided");
+    }
+
+    const user = await db.user.findFirst({
+        where: {
+            OR: [
+                email ? { email } : undefined,
+                username ? { username } : undefined,
+            ].filter(Boolean) as any[],
+        },
+        select: {
             id: true,
-            password: true
-        }
+            password: true,
+        },
+    });
+
+    if (!user) return response(c, 401, "Email or Username or Password is not valid");
+
+    const isPasswordMatch = await Bun.password.verify(password, user.password);
+    if (!isPasswordMatch) return response(c, 401, "Email or Username or Password is not valid");
+
+    const session_id = nanoid()
+
+    const access_token = JWT.signAccessToken({ session_id: user.id });
+    const refresh_token = JWT.signRefreshToken({ session_id: user.id });
+
+    // save session to redis
+    await Session.save(user.id, session_id, refresh_token)
+
+    setCookie(c, "refresh_token", refresh_token, {
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        path: "/"
     })
-    if (!user) return response(c, 404, "User is not found")
 
-    // verify password
-    const isPasswordMatch = await Bun.password.verify(password, user.password)
-    if (!isPasswordMatch) return response(c, 401, `${email ? "Email" : "Username"} or Password is not valid`)
-
-    // sign jwt
-    const auth_token = JWT.sign({ session_id: user.id });
-
-    setCookie(c, "auth_token", auth_token)
-
-    return response(c, 200)
-})
+    return response(c, 200, {
+        accessToken: access_token,
+    })
+});

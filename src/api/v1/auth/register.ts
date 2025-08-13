@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import Email from "@/lib/email";
 import handler from "@/lib/handler";
-import JWT from "@/lib/jwt";
 import OTP from "@/lib/otp";
 import { getRedisClient } from "@/lib/redis";
 import { response } from "@/lib/response";
@@ -33,9 +32,14 @@ export const register = handler(async (c) => {
 
     const { username, email, password, fullName } = validated.data
 
-    const isUserExist = await db.user.findUnique({
-        where: { email, username }
-    })
+    const isUserExist = await db.user.findFirst({
+        where: {
+            OR: [
+                { email },
+                { username }
+            ]
+        }
+    });
     if (isUserExist) return response(c, 400, "User has been registered");
 
     const hashedPassword = await Bun.password.hash(password, "bcrypt")
@@ -54,16 +58,16 @@ export const register = handler(async (c) => {
         }
     })
 
-    const otp = OTP.generate(6);
+    const { otp_id, otp } = OTP.generate(6);
 
     // set otp on redis
     const redis = getRedisClient()
-    await redis.set(`otp:${user.id}`, otp, 'EX', 300) // expire in 5 minutes
+    await redis.set(`otp:${otp_id}`, otp, 'EX', 300) // expire in 5 minutes
 
     // otp send via email
     // await Email.sendOTP({ to: user.email, name: user.username, otp })
 
-    // return response(c, 201, {id: user.id})
+    // return response(c, 201, {userId: user.id, otpId: otp_id})
 
-    return response(c, 201, { userId: user.id, otp })
+    return response(c, 201, { userId: user.id, otpId: otp_id, otp })
 })

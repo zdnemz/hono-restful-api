@@ -9,4 +9,4 @@ export interface ApiResponse<T = unknown> {
     error?: unknown;
 }
 
-export interface DefaultPayload { session_id: string; }
+export interface DefaultPayload { user_id: string, session_id: string; }

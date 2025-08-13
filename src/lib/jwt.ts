@@ -1,24 +1,39 @@
 import type { DefaultPayload } from "@/types";
-import jwt, { JsonWebTokenError } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 
 export default class JWT {
-    private static readonly JWT_SECRET: string = process.env.JWT_SECRET as string;
-    private static readonly JWT_OPTIONS: SignOptions = {
+    private static readonly ACCESS_TOKEN_SECRET: string = process.env.ACCESS_TOKEN_SECRET!;
+    private static readonly REFRESH_TOKEN_SECRET: string = process.env.REFRESH_TOKEN_SECRET!;
+
+    private static readonly ACCESS_TOKEN_OPTIONS: SignOptions = {
+        expiresIn: "15m",
+    };
+
+    private static readonly REFRESH_TOKEN_OPTIONS: SignOptions = {
         expiresIn: "7d",
     };
 
-    public static sign<T extends object = DefaultPayload>(payload: T): string {
-        return jwt.sign(payload, this.JWT_SECRET, this.JWT_OPTIONS);
+    public static signAccessToken<T extends object = DefaultPayload>(payload: T): string {
+        return jwt.sign(payload, this.ACCESS_TOKEN_SECRET, this.ACCESS_TOKEN_OPTIONS);
     }
 
-    public static verify<T = DefaultPayload>(token: string): T | null {
+    public static signRefreshToken<T extends object = DefaultPayload>(payload: T): string {
+        return jwt.sign(payload, this.REFRESH_TOKEN_SECRET, this.REFRESH_TOKEN_OPTIONS);
+    }
+
+    public static verifyAccessToken<T = DefaultPayload>(token: string): T | null {
         try {
-            return jwt.verify(token, this.JWT_SECRET) as T;
-        } catch (err) {
-            if (err instanceof JsonWebTokenError) {
-                console.warn("JWT verification failed:", err.message);
-            }
+            return jwt.verify(token, this.ACCESS_TOKEN_SECRET) as T;
+        } catch {
+            return null;
+        }
+    }
+
+    public static verifyRefreshToken<T = DefaultPayload>(token: string): T | null {
+        try {
+            return jwt.verify(token, this.REFRESH_TOKEN_SECRET) as T;
+        } catch {
             return null;
         }
     }
